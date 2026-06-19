@@ -174,7 +174,7 @@
 </main>
 
 <div class="klaar" id="klaar" onclick="this.classList.remove('show')">
-  <div class="klaar-box">Zo, het werk zit erop, nu is het tijd voor een biertje!<small>tik om te sluiten</small></div>
+  <div class="klaar-box"><span id="klaar-tekst"></span><small>tik om te sluiten</small></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -514,6 +514,31 @@ async function genereer(){
     a.download=`weekrapport_week_${week||"XX"}.xlsx`;
     a.click();URL.revokeObjectURL(a.href);
     toast("Excel gedownload");
+    const TELAAT=[
+      "Oeps, beetje laat hè! Maar beter laat dan nooit.",
+      "Zo, eindelijk, dat werd tijd!",
+      "Dat is echt veel te laat, dat wordt trakteren!",
+      "Pas op! Geen uren is ook geen salaris.",
+      "Vergeet ook niet de uren van deze week. Daarna is het tijd voor een biertje!",
+      "Zaterdag gewerkt? Petje af — geniet van je weekend!",
+      "Zondag aan het werk? Tijd om de voeten omhoog te leggen!"
+    ];
+    const OPTIJD=[
+      "Lekker op tijd zeg! Goed bezig.",
+      "Zit de week er nu al op?",
+      "Donderdag en vrijdag lekker vrij? Geniet ervan!",
+      "Lekker lang weekend, heerlijk!",
+      "Zo, het werk zit erop, nu is het tijd voor een biertje!",
+      "Zaterdag gewerkt? Petje af — geniet van je weekend!",
+      "Zondag aan het werk? Tijd om de voeten omhoog te leggen!"
+    ];
+    const di=(new Date().getDay()+6)%7;
+    const now=isoWeekNow();
+    const iw=parseInt(document.getElementById("week").value,10);
+    const ij=parseInt(document.getElementById("jaar").value,10);
+    let telaat=false;
+    if(iw&&ij) telaat=(ij<now.year)||(ij===now.year&&iw<now.week);
+    document.getElementById("klaar-tekst").textContent=(telaat?TELAAT:OPTIJD)[di];
     document.getElementById("klaar").classList.add("show");
   }catch(err){console.error(err);toast("Er ging iets mis: "+err.message,false);}
   finally{btn.disabled=false;btn.textContent="Excel downloaden";}
