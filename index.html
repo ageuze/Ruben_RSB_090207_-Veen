@@ -291,6 +291,17 @@ function isoWeekMonday(year,week){
   const mon=new Date(wk1);mon.setUTCDate(wk1.getUTCDate()+(week-1)*7);
   return mon.toISOString().slice(0,10);
 }
+function isoWeekNow(){
+  const n=new Date();
+  const d=new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()));
+  const dow=(d.getUTCDay()+6)%7;
+  d.setUTCDate(d.getUTCDate()-dow+3); // donderdag van deze week
+  const ft=new Date(Date.UTC(d.getUTCFullYear(),0,4));
+  const ftDow=(ft.getUTCDay()+6)%7;
+  ft.setUTCDate(ft.getUTCDate()-ftDow+3);
+  const week=1+Math.round((d-ft)/(7*86400000));
+  return {week, year:d.getUTCFullYear()};
+}
 function vulWeek(){
   const w=parseInt(document.getElementById("week").value,10);
   const j=parseInt(document.getElementById("jaar").value,10);
@@ -511,7 +522,12 @@ async function genereer(){
 function init(){
   try{
     buildHours();
-    document.getElementById("jaar").value=new Date().getFullYear();
+    const w=isoWeekNow();
+    document.getElementById("jaar").value=w.year;
+    document.getElementById("week").value=w.week;
+    vulWeek();
+    for(let i=0;i<5;i++) document.querySelector(`#dagen-werk input[data-d="${i}"]`).value=8;
+    calcTot();
   }catch(e){
     const bar=document.getElementById("errbar");
     if(bar){bar.style.display="block";bar.textContent="Er ging iets mis bij het laden: "+e.message;}
