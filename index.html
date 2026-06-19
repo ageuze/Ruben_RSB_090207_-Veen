@@ -18,8 +18,8 @@
   body{margin:0;font-family:"Jost",system-ui,"Segoe UI",roboto,arial,sans-serif;background:var(--paper);color:var(--ink2);line-height:1.45}
   header{background:var(--ink);color:#fff;padding:22px 20px;border-bottom:4px solid var(--accent)}
   header .wrap{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:14px}
-  .mark{display:flex;align-items:baseline;gap:2px;font-weight:800;font-size:1.5rem;letter-spacing:1.5px;text-transform:uppercase}
-  .mark i{width:11px;height:11px;background:var(--accent);display:inline-block;border-radius:2px;align-self:center;margin-right:4px}
+  .logo{display:flex;align-items:center}
+  .logo svg{height:48px;width:auto;display:block;border-radius:3px}
   header .sub{margin-left:auto;text-align:right}
   header h1{margin:0;font-size:1rem;font-weight:600;letter-spacing:.3px}
   header p{margin:2px 0 0;color:#b3b1ac;font-size:.8rem}
@@ -78,6 +78,12 @@
   .generate:hover{background:var(--accent-d)}
   .generate:disabled{opacity:.6;cursor:wait}
   .hint{font-size:.78rem;color:var(--muted);margin-top:8px}
+  .klaar{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(25,22,20,.5);padding:20px}
+  .klaar.show{display:flex;animation:fade .25s ease}
+  .klaar-box{background:var(--accent);color:#fff;font-weight:700;font-size:1.18rem;line-height:1.4;text-align:center;padding:26px 30px;border-radius:12px;max-width:420px;box-shadow:0 14px 44px rgba(0,0,0,.3);animation:pop .4s ease}
+  .klaar-box small{display:block;margin-top:12px;font-weight:500;font-size:.78rem;opacity:.85}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
   .errbar{display:none;background:#fdecea;color:var(--accent-d);border:1px solid #f3c2bc;border-radius:5px;padding:10px 14px;margin:0 0 14px;font-size:.86rem}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);color:#fff;padding:12px 20px;border-radius:6px;font-size:.9rem;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.2)}
   .toast.show{opacity:1}
@@ -86,7 +92,25 @@
 </head>
 <body>
 <header><div class="wrap">
-  <div class="mark"><i></i>Roseboom</div>
+  <div class="logo"><svg viewBox="0 0 236 121" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_0_22)">
+<path d="M236 0H0V121H236V0Z" fill="#FF3300"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M58.1 57.081L60.7 46.081H73.3C73.3 46.081 78.2 45.681 78 51.681C77.8 57.581 72.9 57.081 72.9 57.081H58.1ZM197.9 77.381L194.9 74.281L191.9 77.381H74.1L72.5 66.181C87.1 66.981 88.2 52.881 88.2 52.881C88.9 37.981 75.9 36.081 75.9 36.081L52.9 38.381L42.3 82.581L41.5 80.481L38.1 83.081L41.4 86.181H50.5L55.6 66.181H63.3L65.3 81.881L62.5 82.881L65.8 85.981H195.9L197.9 77.381Z" fill="black"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M94.5 68.22C92.5 68.22 92.6 66.32 93.5 61.82C94.4 57.32 95.1 55.42 97.2 55.42C99.2 55.42 99.1 57.32 98.2 61.82C97.2 66.22 96.5 68.22 94.5 68.22ZM93.9 70.82C99.9 70.82 100.8 66.32 101.8 61.82C102.8 57.22 103.7 52.82 97.7 52.82C91.7 52.82 90.8 57.22 89.8 61.82C88.9 66.32 87.9 70.82 93.9 70.82Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M107.5 70.82C102.9 70.82 102.6 68.12 103.5 65.12H107.1C106.7 66.82 106.5 68.22 108.5 68.22C109.7 68.22 110.7 67.42 110.8 66.22C111.5 63.02 104.1 62.92 105.2 57.72C105.8 55.02 107.6 52.82 112.1 52.82C115.7 52.82 117.2 54.42 116.1 58.12H112.5C112.8 56.82 112.8 55.52 111.3 55.52C110.2 55.42 109.2 56.32 109 57.42C108.3 60.72 115.8 60.42 114.6 65.92C113.8 70.22 110.3 70.82 107.5 70.82Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M116.5 70.82L120.2 53.32H129.9L129.3 56.02H123.4L122.4 60.32H127.9L127.4 63.02H121.9L120.8 68.12H126.9L126.3 70.82H116.5Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M134.1 63.12H136.2C138 63.12 138.4 64.12 138.1 65.62C138 67.12 136.7 68.22 135.2 68.12C135.2 68.12 135.2 68.12 135.1 68.12H133.1L134.1 63.12ZM135.6 56.02H137.8C138.7 55.92 139.5 56.62 139.5 57.52C139.5 57.72 139.5 58.02 139.4 58.22C139.2 59.42 138.2 60.32 137 60.42H134.6L135.6 56.02ZM135.3 70.82C136.8 70.82 140.7 70.62 141.7 66.22C142.2 63.82 141.9 62.12 139.4 61.82C141.4 61.52 142.9 59.92 143.2 57.92C144 54.22 141.9 53.42 139.1 53.42H132.6L128.9 70.92L135.3 70.82Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M149.8 68.22C147.8 68.22 147.9 66.32 148.8 61.82C149.7 57.32 150.4 55.42 152.5 55.42C154.5 55.42 154.4 57.32 153.5 61.82C152.6 66.32 151.8 68.22 149.8 68.22ZM149.2 70.82C155.2 70.82 156.1 66.32 157.1 61.82C158.1 57.22 159 52.82 153 52.82C147 52.82 146.1 57.22 145.1 61.82C144.2 66.32 143.2 70.82 149.2 70.82Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M164.8 68.22C162.8 68.22 162.9 66.32 163.8 61.82C164.7 57.32 165.4 55.42 167.5 55.42C169.5 55.42 169.4 57.32 168.5 61.82C167.5 66.22 166.8 68.22 164.8 68.22ZM164.2 70.82C170.2 70.82 171.1 66.32 172.1 61.82C173.1 57.22 174 52.82 168 52.82C162 52.82 161.1 57.22 160.1 61.82C159.2 66.32 158.2 70.82 164.2 70.82Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M173.4 70.82L177.1 53.32H183L183.2 65.22L188.7 53.32H194.3L190.6 70.82H187.1L189.9 57.32L183.7 70.82H180.2L179.9 57.32H179.8L177 70.82H173.4Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M194.7 73.92H70.7L69.1 62.72C83.7 63.42 84.8 49.42 84.8 49.42C85.5 34.52 72.8 34.82 72.8 34.82H49.6L38.1 82.72H47.2L52.3 62.72H60L62.6 82.52H192.8L194.7 73.92ZM54.7 53.52L57.3 42.52H71C71 42.52 75.9 42.12 75.7 48.12C75.5 54.02 70.6 53.52 70.6 53.52H54.7Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_0_22">
+<rect width="236" height="121" fill="white"/>
+</clipPath>
+</defs>
+</svg></div>
   <div class="sub"><h1>Weekrapport</h1><p>Invullen en exporteren naar Excel</p></div>
 </div></header>
 
@@ -149,6 +173,9 @@
   </div>
 </main>
 
+<div class="klaar" id="klaar" onclick="this.classList.remove('show')">
+  <div class="klaar-box">Zo, het werk zit erop, nu is het tijd voor een biertje!<small>tik om te sluiten</small></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -476,6 +503,7 @@ async function genereer(){
     a.download=`weekrapport_week_${week||"XX"}.xlsx`;
     a.click();URL.revokeObjectURL(a.href);
     toast("Excel gedownload");
+    document.getElementById("klaar").classList.add("show");
   }catch(err){console.error(err);toast("Er ging iets mis: "+err.message,false);}
   finally{btn.disabled=false;btn.textContent="Excel downloaden";}
 }
