@@ -30,13 +30,14 @@
   .body{padding:16px}
   label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:4px;font-weight:500}
   input,select{width:100%;min-width:0;height:40px;padding:0 10px;border:1px solid var(--line);border-radius:4px;font-size:.92rem;font-family:inherit;background:#fff;color:var(--ink2)}
-  input[type=date],input[type=time]{padding-right:6px}
+  input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;text-align:left;padding-right:6px}
   input::-webkit-datetime-edit{padding:0;margin:0}
-  input::-webkit-datetime-edit-fields-wrapper{padding:0}
+  input::-webkit-datetime-edit-fields-wrapper{padding:0;margin:0}
   input[type=date]::-webkit-date-and-time-value,
   input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0;padding:0}
+  input::-webkit-datetime-edit-text{padding:0}
   input[type=date]::-webkit-calendar-picker-indicator,
-  input[type=time]::-webkit-calendar-picker-indicator{margin-left:0}
+  input[type=time]::-webkit-calendar-picker-indicator{margin:0;margin-left:auto}
   input:focus,select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
   .grid{display:grid;gap:12px}
   .g2{grid-template-columns:1fr 1fr}
