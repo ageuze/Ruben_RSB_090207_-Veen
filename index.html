@@ -56,6 +56,14 @@
   .rij{border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;background:#fbfaf8}
   .rij .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
   .rij .top strong{font-size:.82rem;text-transform:uppercase;letter-spacing:.8px;color:var(--blue)}
+  .dagnaam{color:var(--muted);font-weight:500}
+  .dagblok{border:1px solid var(--line);border-radius:5px;padding:12px;margin-bottom:10px;background:#fbfaf8}
+  .dagblok .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+  .dagblok .dagsel{width:auto;min-width:130px;font-weight:600;color:var(--blue)}
+  .mr-rij{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+  .mr-rij input{flex:1 1 150px}
+  .mr-rij select{flex:0 0 150px;width:150px}
+  .mini.addmr{margin-top:2px}
   .rij .top .acts{display:flex;gap:4px}
   .mini{background:none;border:1px solid var(--line);border-radius:4px;cursor:pointer;font-size:.74rem;padding:4px 8px;color:var(--ink);font-family:inherit}
   .mini:hover{background:#f0eeea}
@@ -122,6 +130,15 @@
     <div class="body" style="padding-top:0;display:flex;gap:8px;flex-wrap:wrap">
       <button class="addbtn" onclick="rittenUitUren()">⚙ Ritten uit werkdagen</button>
       <button class="addbtn" onclick="addReis()">+ lege regel</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Meerijders</h2>
+    <div class="body" id="meerij-list"></div>
+    <div class="body" style="padding-top:0;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="addbtn" onclick="meerijUitWerkdagen()">⚙ Dagen uit werkdagen</button>
+      <button class="addbtn" onclick="addMeerijDag()">+ dag</button>
     </div>
   </section>
 
@@ -203,12 +220,12 @@ function addReis(datum=""){
   const i=reisN++;
   const div=document.createElement("div");div.className="rij";div.dataset.reis=i;
   div.innerHTML=`
-    <div class="top"><strong>Rit</strong><div class="acts">
+    <div class="top"><strong>Rit<span class="dagnaam" data-dag></span></strong><div class="acts">
       <button class="mini kop" onclick="kopieerReis(this)">⬆ kopieer van boven</button>
       <button class="mini del" onclick="this.closest('.rij').remove()">verwijderen</button>
     </div></div>
     <div class="grid g3">
-      <div class="field"><label>Datum</label><input type="date" data-f="datum" value="${datum}"></div>
+      <div class="field"><label>Datum</label><input type="date" data-f="datum" value="${datum}" oninput="updReisDag(this)"></div>
       <div class="field"><label>Startplaats</label><input data-f="startplaats" value="Zaak"></div>
       <div class="field"><label>Startadres</label><input data-f="startadres"></div>
       <div class="field"><label>Plaats bestemming</label><input data-f="bplaats"></div>
@@ -218,7 +235,15 @@ function addReis(datum=""){
       <div class="field"><label>Meerijders</label><select data-f="meerij"><option value="">—</option><option value="ja">Ja</option><option value="nee">Nee</option></select></div>
     </div>`;
   document.getElementById("reis-list").appendChild(div);
+  setReisDag(div);
 }
+function dagLabel(iso){if(!iso)return "";const[y,m,d]=iso.split("-").map(Number);const wd=(new Date(Date.UTC(y,m-1,d)).getUTCDay()+6)%7;return DAGEN[wd];}
+function setReisDag(rij){
+  const iso=rij.querySelector('[data-f="datum"]').value;
+  const dg=dagLabel(iso);
+  rij.querySelector('[data-dag]').textContent=dg?" · "+dg:"";
+}
+function updReisDag(inp){setReisDag(inp.closest(".rij"));}
 function kopieerReis(btn){
   const rij=btn.closest(".rij");
   const prev=rij.previousElementSibling;
@@ -292,6 +317,54 @@ function rittenUitUren(){
   });
   toast(count?count+" rit(ten) uit werkdagen":"Geen werkuren ingevuld",count>0);
 }
+// ---- meerijders (per dag, max 4) ----
+let meerijDagN=0;
+const MR_COLS=[{naam:"B",heen:"E",terug:"F"},{naam:"G",heen:"J",terug:"K"},{naam:"L",heen:"O",terug:"P"},{naam:"Q",heen:"T",terug:"U"}];
+function addMeerijDag(dagidx=0){
+  const i=meerijDagN++;
+  const div=document.createElement("div");div.className="dagblok";div.dataset.mdag=i;
+  const opts=DAGEN.map((d,k)=>`<option value="${k}"${k===dagidx?" selected":""}>${d}</option>`).join("");
+  div.innerHTML=`
+    <div class="top">
+      <select data-f="dag" class="dagsel">${opts}</select>
+      <button class="mini del" onclick="this.closest('.dagblok').remove()">verwijderen</button>
+    </div>
+    <div class="mr-list"></div>
+    <button class="mini addmr" onclick="addMeerijder(this)">+ meerijder</button>`;
+  document.getElementById("meerij-list").appendChild(div);
+  addMeerijder(div.querySelector(".addmr"));
+  return div;
+}
+function addMeerijder(btn){
+  const blok=btn.closest(".dagblok"), list=blok.querySelector(".mr-list");
+  if(list.querySelectorAll(".mr-rij").length>=4){toast("Maximaal 4 meerijders per dag",false);return;}
+  const div=document.createElement("div");div.className="mr-rij";
+  div.innerHTML=`
+    <input data-f="naam" placeholder="Naam meerijder">
+    <select data-f="richting"><option value="ht">Heen en terug</option><option value="h">Heen</option><option value="t">Terug</option></select>
+    <button class="mini del" onclick="delMeerijder(this)">×</button>`;
+  list.appendChild(div);
+  if(list.querySelectorAll(".mr-rij").length>=4) btn.style.display="none";
+}
+function delMeerijder(btn){
+  const blok=btn.closest(".dagblok");
+  btn.closest(".mr-rij").remove();
+  const add=blok.querySelector(".addmr"); if(add) add.style.display="";
+}
+function meerijUitWerkdagen(){
+  const werk=getHours("werk");
+  const bestaand={};
+  document.querySelectorAll("[data-mdag]").forEach(b=>{bestaand[+b.querySelector('[data-f="dag"]').value]=b;});
+  let count=0;
+  for(let i=0;i<7;i++){
+    if(werk[i]>0){ count++; if(bestaand[i]) delete bestaand[i]; else addMeerijDag(i); }
+  }
+  Object.values(bestaand).forEach(b=>{
+    const heeftNaam=[...b.querySelectorAll('[data-f="naam"]')].some(n=>n.value.trim());
+    if(!heeftNaam) b.remove();
+  });
+  toast(count?count+" dag(en) klaargezet":"Geen werkuren ingevuld",count>0);
+}
 document.addEventListener("input",e=>{ if(e.target.id==="week"||e.target.id==="jaar") vulWeek(); });
 
 // ---- Excel helpers ----
@@ -318,6 +391,7 @@ async function genereer(){
     for(let col=1;col<=21;col++) ws.getCell(11,col).value=null;
     for(let r=17;r<=31;r++) ["A","C","E","F","G","H","J","L","P","U"].forEach(L=>ws.getCell(L+r).value=null);
     for(let r=37;r<=51;r++) ["A","C","F","I","L","O","P","Q","R","T","U"].forEach(L=>ws.getCell(L+r).value=null);
+    for(let r=55;r<=61;r++) ["B","E","F","G","J","K","L","O","P","Q","T","U"].forEach(L=>ws.getCell(L+r).value=null);
 
     const wnr=document.getElementById("wnr").value; if(wnr)ws.getCell("D2").value=+wnr;
     const week=document.getElementById("week").value; if(week)ws.getCell("D5").value=week+".";
@@ -359,6 +433,20 @@ async function genereer(){
       const mr=val(el,"meerij");
       if(mr==="ja")ws.getCell("T"+r).value="X";
       else if(mr==="nee")ws.getCell("U"+r).value="X";
+    });
+
+    // meerijders: per dagblok naar template-rij 55..61 (ma..zo), max 4 per dag
+    document.querySelectorAll("[data-mdag]").forEach(blok=>{
+      const dagidx=+blok.querySelector('[data-f="dag"]').value;
+      const r=55+dagidx;
+      [...blok.querySelectorAll(".mr-rij")].slice(0,4).forEach((mrEl,k)=>{
+        const naam=val(mrEl,"naam"); if(!naam)return;
+        const c=MR_COLS[k];
+        ws.getCell(c.naam+r).value=naam;
+        const ri=val(mrEl,"richting");
+        if(ri==="ht"||ri==="h")ws.getCell(c.heen+r).value="X";
+        if(ri==="ht"||ri==="t")ws.getCell(c.terug+r).value="X";
+      });
     });
 
     const buf=await wb.xlsx.writeBuffer();
