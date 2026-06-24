@@ -176,7 +176,7 @@
       <button class="generate" id="mail" onclick="mailen()">Mailen / delen</button>
       <button class="generate ghost" id="gen" onclick="genereer()">Downloaden</button>
     </div>
-    <div class="hint">Mailen zet het Excel-bestand klaar met onderwerp <em>Uren week XX - naam</em> voor <strong>uren@roseboom-groep.nl</strong>. Op de telefoon kies je je mailapp; vul daar het adres in als het nog leeg is. Internet nodig voor de export.</div>
+    <div class="hint">Mailen deelt het Excel-bestand als bijlage met onderwerp <em>Uren week XX - naam</em>. Kies in het deelmenu je mailapp en stuur naar <strong>uren@roseboom-groep.nl</strong> (adres zelf invullen). Internet nodig voor de export.</div>
   </div>
 </main>
 
@@ -584,10 +584,9 @@ async function mailen(){
     if(geannuleerd){ /* gebruiker sloot het deelmenu: niets doen */ }
     else if(gedeeld){ toonKlaar(); }
     else{
-      // terugval (desktop of mislukte share): bestand downloaden + mail klaarzetten met adres + onderwerp
+      // geen Web Share of delen lukte niet: bestand downloaden (geen kale mail, want die kan geen bijlage)
       downloadBlob(blob,naam);
-      const body="Het uren-bestand ("+naam+") staat in je downloads; voeg het hier toe als bijlage.";
-      window.location.href=`mailto:${MAIL_TO}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+      toast("Bestand gedownload");
       toonKlaar();
     }
   }catch(err){console.error(err);toast("Er ging iets mis: "+err.message,false);}
