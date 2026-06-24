@@ -77,6 +77,9 @@
   .generate{background:var(--accent);color:#fff;border:none;padding:14px 34px;border-radius:5px;font-size:1rem;font-weight:700;letter-spacing:.5px;cursor:pointer;box-shadow:0 4px 14px rgba(255,51,0,.25);font-family:inherit}
   .generate:hover{background:var(--accent-d)}
   .generate:disabled{opacity:.6;cursor:wait}
+  .knoprij{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .generate.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+  .generate.ghost:hover{background:#f0eeea}
   .hint{font-size:.78rem;color:var(--muted);margin-top:8px}
   .klaar{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(25,22,20,.5);padding:20px}
   .klaar.show{display:flex;animation:fade .25s ease}
@@ -168,8 +171,11 @@
   </section>
 
   <div class="actions">
-    <button class="generate" id="gen" onclick="genereer()">Excel downloaden</button>
-    <div class="hint">Komt in je downloadmap als <code>weekrapport_week_XX.xlsx</code>. Internet nodig voor de export.</div>
+    <div class="knoprij">
+      <button class="generate" id="mail" onclick="mailen()">Mailen / delen</button>
+      <button class="generate ghost" id="gen" onclick="genereer()">Alleen downloaden</button>
+    </div>
+    <div class="hint">Mailen zet het Excel-bestand klaar met onderwerp <em>Uren week XX - naam</em> voor <strong>uren@roseboom-groep.nl</strong>. Op de telefoon kies je je mailapp; vul daar het adres in als het nog leeg is. Internet nodig voor de export.</div>
   </div>
 </main>
 
@@ -433,115 +439,155 @@ function num(el,f){const v=val(el,f);return v===""?null:parseNum(v);}
 function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.style.background=ok?"var(--ink)":"var(--accent-d)";t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800);}
 
 // ---- genereren ----
+const MAIL_TO="uren@roseboom-groep.nl";
+function bestandsnaam(){
+  const week=document.getElementById("week").value||"XX";
+  const naam=document.getElementById("naam").value.trim();
+  return naam?`Uren week ${week} - ${naam}.xlsx`:`Uren week ${week}.xlsx`;
+}
+function onderwerp(){
+  const week=document.getElementById("week").value||"XX";
+  const naam=document.getElementById("naam").value.trim();
+  return naam?`Uren week ${week} - ${naam}`:`Uren week ${week}`;
+}
+function downloadBlob(blob,naam){
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=naam;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function toonKlaar(){
+  const TELAAT=[
+    "Oeps, beetje laat hè! Maar beter laat dan nooit.",
+    "Zo, eindelijk, dat werd tijd!",
+    "Dat is echt veel te laat, dat wordt trakteren!",
+    "Pas op! Geen uren is ook geen salaris.",
+    "Vergeet ook niet de uren van deze week. Daarna is het tijd voor een biertje!",
+    "Zaterdag gewerkt? Petje af — geniet van je weekend!",
+    "Zondag aan het werk? Tijd om de voeten omhoog te leggen!"
+  ];
+  const OPTIJD=[
+    "Lekker op tijd zeg! Goed bezig.",
+    "Zit de week er nu al op?",
+    "Donderdag en vrijdag lekker vrij? Geniet ervan!",
+    "Lekker lang weekend, heerlijk!",
+    "Zo, het werk zit erop, nu is het tijd voor een biertje!",
+    "Zaterdag gewerkt? Petje af — geniet van je weekend!",
+    "Zondag aan het werk? Tijd om de voeten omhoog te leggen!"
+  ];
+  const di=(new Date().getDay()+6)%7;
+  const now=isoWeekNow();
+  const iw=parseInt(document.getElementById("week").value,10);
+  const ij=parseInt(document.getElementById("jaar").value,10);
+  let telaat=false;
+  if(iw&&ij) telaat=(ij<now.year)||(ij===now.year&&iw<now.week);
+  document.getElementById("klaar-tekst").textContent=(telaat?TELAAT:OPTIJD)[di];
+  document.getElementById("klaar").classList.add("show");
+}
+async function bouwBestand(){
+  const bytes=Uint8Array.from(atob(TEMPLATE_B64),c=>c.charCodeAt(0));
+  const wb=new ExcelJS.Workbook();
+  await wb.xlsx.load(bytes);
+  const ws=wb.getWorksheet("weekrapport")||wb.worksheets[0];
+  const set=(c,v)=>{if(v!==null&&v!==""&&v!==undefined)ws.getCell(c).value=v;};
+
+  // invulgebied legen
+  ["D2","D5","H5","P5","S5"].forEach(c=>ws.getCell(c).value=null);
+  for(let col=1;col<=21;col++) ws.getCell(11,col).value=null;
+  for(let r=17;r<=31;r++) ["A","C","E","F","G","H","J","L","P","U"].forEach(L=>ws.getCell(L+r).value=null);
+  for(let r=37;r<=51;r++) ["A","C","F","I","L","O","P","Q","R","T","U"].forEach(L=>ws.getCell(L+r).value=null);
+  for(let r=55;r<=61;r++) ["B","E","F","G","J","K","L","O","P","Q","T","U"].forEach(L=>ws.getCell(L+r).value=null);
+
+  const wnr=document.getElementById("wnr").value; if(wnr)ws.getCell("D2").value=+wnr;
+  const week=document.getElementById("week").value; if(week)ws.getCell("D5").value=week+".";
+  set("H5",document.getElementById("naam").value.trim());
+  const van=document.getElementById("van").value,tot=document.getElementById("tot").value;
+  if(van)ws.getCell("P5").value=toSerial(van);
+  if(tot)ws.getCell("S5").value=toSerial(tot);
+
+  const werk=getHours("werk"),reis=getHours("reis"),pak=getHours("pak");
+  for(let i=0;i<7;i++){
+    if(werk[i])ws.getCell(11,1+i).value=werk[i];
+    if(reis[i])ws.getCell(11,8+i).value=reis[i];
+    if(pak[i])ws.getCell(11,15+i).value=pak[i];
+    const col=String.fromCharCode(65+i);
+    ws.getCell(14,1+i).value={formula:`${col}11+${String.fromCharCode(72+i)}11+${String.fromCharCode(79+i)}11`};
+  }
+
+  document.querySelectorAll("[data-werk]").forEach((el,idx)=>{
+    const r=17+idx; if(r>31)return;
+    set("A"+r,val(el,"dag"));
+    const dt=val(el,"datum"); if(dt)ws.getCell("C"+r).value=toSerial(dt);
+    const vn=toFrac(val(el,"van")); if(vn!==null)ws.getCell("E"+r).value=vn;
+    const tt=toFrac(val(el,"tot")); if(tt!==null)ws.getCell("F"+r).value=tt;
+    set("G"+r,val(el,"pauze")); set("H"+r,val(el,"uitvoerder")); set("J"+r,val(el,"machine"));
+    set("L"+r,val(el,"project")); set("P"+r,val(el,"werk"));
+    const u=num(el,"uren"); if(u!==null)ws.getCell("U"+r).value=u;
+  });
+  ws.getCell("U32").value={formula:"SUM(U17:U31)"};
+
+  document.querySelectorAll("[data-reis]").forEach((el,idx)=>{
+    const r=37+idx; if(r>51)return;
+    const dt=val(el,"datum"); if(dt)ws.getCell("A"+r).value=toSerial(dt);
+    set("C"+r,val(el,"startplaats")); set("F"+r,val(el,"startadres"));
+    set("I"+r,val(el,"bplaats")); set("L"+r,val(el,"badres")); set("R"+r,val(el,"kenteken"));
+    const auto=val(el,"auto");
+    if(auto==="zaak")ws.getCell("O"+r).value="X";
+    else if(auto==="prive")ws.getCell("P"+r).value="X";
+    else if(auto==="meerij")ws.getCell("Q"+r).value="X";
+    const mr=val(el,"meerij");
+    if(mr==="ja")ws.getCell("T"+r).value="X";
+    else if(mr==="nee")ws.getCell("U"+r).value="X";
+  });
+
+  document.querySelectorAll("[data-mdag]").forEach(blok=>{
+    const dagidx=+blok.querySelector('[data-f="dag"]').value;
+    const r=55+dagidx;
+    [...blok.querySelectorAll(".mr-rij")].slice(0,4).forEach((mrEl,k)=>{
+      const naam=val(mrEl,"naam"); if(!naam)return;
+      const c=MR_COLS[k];
+      ws.getCell(c.naam+r).value=naam;
+      const ri=val(mrEl,"richting");
+      if(ri==="ht"||ri==="h")ws.getCell(c.heen+r).value="X";
+      if(ri==="ht"||ri==="t")ws.getCell(c.terug+r).value="X";
+    });
+  });
+
+  const buf=await wb.xlsx.writeBuffer();
+  return new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
 async function genereer(){
   const btn=document.getElementById("gen");
   if(typeof ExcelJS==="undefined"){toast("Excel-module kon niet laden. Open de pagina met internet.",false);return;}
   btn.disabled=true;btn.textContent="Bezig…";
   try{
-    const bytes=Uint8Array.from(atob(TEMPLATE_B64),c=>c.charCodeAt(0));
-    const wb=new ExcelJS.Workbook();
-    await wb.xlsx.load(bytes);
-    const ws=wb.getWorksheet("weekrapport")||wb.worksheets[0];
-    const set=(c,v)=>{if(v!==null&&v!==""&&v!==undefined)ws.getCell(c).value=v;};
-
-    // invulgebied legen
-    ["D2","D5","H5","P5","S5"].forEach(c=>ws.getCell(c).value=null);
-    for(let col=1;col<=21;col++) ws.getCell(11,col).value=null;
-    for(let r=17;r<=31;r++) ["A","C","E","F","G","H","J","L","P","U"].forEach(L=>ws.getCell(L+r).value=null);
-    for(let r=37;r<=51;r++) ["A","C","F","I","L","O","P","Q","R","T","U"].forEach(L=>ws.getCell(L+r).value=null);
-    for(let r=55;r<=61;r++) ["B","E","F","G","J","K","L","O","P","Q","T","U"].forEach(L=>ws.getCell(L+r).value=null);
-
-    const wnr=document.getElementById("wnr").value; if(wnr)ws.getCell("D2").value=+wnr;
-    const week=document.getElementById("week").value; if(week)ws.getCell("D5").value=week+".";
-    set("H5",document.getElementById("naam").value.trim());
-    const van=document.getElementById("van").value,tot=document.getElementById("tot").value;
-    if(van)ws.getCell("P5").value=toSerial(van);
-    if(tot)ws.getCell("S5").value=toSerial(tot);
-
-    const werk=getHours("werk"),reis=getHours("reis"),pak=getHours("pak");
-    for(let i=0;i<7;i++){
-      if(werk[i])ws.getCell(11,1+i).value=werk[i];
-      if(reis[i])ws.getCell(11,8+i).value=reis[i];
-      if(pak[i])ws.getCell(11,15+i).value=pak[i];
-      const col=String.fromCharCode(65+i);
-      ws.getCell(14,1+i).value={formula:`${col}11+${String.fromCharCode(72+i)}11+${String.fromCharCode(79+i)}11`};
-    }
-
-    document.querySelectorAll("[data-werk]").forEach((el,idx)=>{
-      const r=17+idx; if(r>31)return;
-      set("A"+r,val(el,"dag"));
-      const dt=val(el,"datum"); if(dt)ws.getCell("C"+r).value=toSerial(dt);
-      const vn=toFrac(val(el,"van")); if(vn!==null)ws.getCell("E"+r).value=vn;
-      const tt=toFrac(val(el,"tot")); if(tt!==null)ws.getCell("F"+r).value=tt;
-      set("G"+r,val(el,"pauze")); set("H"+r,val(el,"uitvoerder")); set("J"+r,val(el,"machine"));
-      set("L"+r,val(el,"project")); set("P"+r,val(el,"werk"));
-      const u=num(el,"uren"); if(u!==null)ws.getCell("U"+r).value=u;
-    });
-    ws.getCell("U32").value={formula:"SUM(U17:U31)"};
-
-    document.querySelectorAll("[data-reis]").forEach((el,idx)=>{
-      const r=37+idx; if(r>51)return;
-      const dt=val(el,"datum"); if(dt)ws.getCell("A"+r).value=toSerial(dt);
-      set("C"+r,val(el,"startplaats")); set("F"+r,val(el,"startadres"));
-      set("I"+r,val(el,"bplaats")); set("L"+r,val(el,"badres")); set("R"+r,val(el,"kenteken"));
-      const auto=val(el,"auto");
-      if(auto==="zaak")ws.getCell("O"+r).value="X";
-      else if(auto==="prive")ws.getCell("P"+r).value="X";
-      else if(auto==="meerij")ws.getCell("Q"+r).value="X";
-      const mr=val(el,"meerij");
-      if(mr==="ja")ws.getCell("T"+r).value="X";
-      else if(mr==="nee")ws.getCell("U"+r).value="X";
-    });
-
-    // meerijders: per dagblok naar template-rij 55..61 (ma..zo), max 4 per dag
-    document.querySelectorAll("[data-mdag]").forEach(blok=>{
-      const dagidx=+blok.querySelector('[data-f="dag"]').value;
-      const r=55+dagidx;
-      [...blok.querySelectorAll(".mr-rij")].slice(0,4).forEach((mrEl,k)=>{
-        const naam=val(mrEl,"naam"); if(!naam)return;
-        const c=MR_COLS[k];
-        ws.getCell(c.naam+r).value=naam;
-        const ri=val(mrEl,"richting");
-        if(ri==="ht"||ri==="h")ws.getCell(c.heen+r).value="X";
-        if(ri==="ht"||ri==="t")ws.getCell(c.terug+r).value="X";
-      });
-    });
-
-    const buf=await wb.xlsx.writeBuffer();
-    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download=`weekrapport_week_${week||"XX"}.xlsx`;
-    a.click();URL.revokeObjectURL(a.href);
+    const blob=await bouwBestand();
+    downloadBlob(blob,bestandsnaam());
     toast("Excel gedownload");
-    const TELAAT=[
-      "Oeps, beetje laat hè! Maar beter laat dan nooit.",
-      "Zo, eindelijk, dat werd tijd!",
-      "Dat is echt veel te laat, dat wordt trakteren!",
-      "Pas op! Geen uren is ook geen salaris.",
-      "Vergeet ook niet de uren van deze week. Daarna is het tijd voor een biertje!",
-      "Zaterdag gewerkt? Petje af — geniet van je weekend!",
-      "Zondag aan het werk? Tijd om de voeten omhoog te leggen!"
-    ];
-    const OPTIJD=[
-      "Lekker op tijd zeg! Goed bezig.",
-      "Zit de week er nu al op?",
-      "Donderdag en vrijdag lekker vrij? Geniet ervan!",
-      "Lekker lang weekend, heerlijk!",
-      "Zo, het werk zit erop, nu is het tijd voor een biertje!",
-      "Zaterdag gewerkt? Petje af — geniet van je weekend!",
-      "Zondag aan het werk? Tijd om de voeten omhoog te leggen!"
-    ];
-    const di=(new Date().getDay()+6)%7;
-    const now=isoWeekNow();
-    const iw=parseInt(document.getElementById("week").value,10);
-    const ij=parseInt(document.getElementById("jaar").value,10);
-    let telaat=false;
-    if(iw&&ij) telaat=(ij<now.year)||(ij===now.year&&iw<now.week);
-    document.getElementById("klaar-tekst").textContent=(telaat?TELAAT:OPTIJD)[di];
-    document.getElementById("klaar").classList.add("show");
+    toonKlaar();
   }catch(err){console.error(err);toast("Er ging iets mis: "+err.message,false);}
-  finally{btn.disabled=false;btn.textContent="Excel downloaden";}
+  finally{btn.disabled=false;btn.textContent="Alleen downloaden";}
+}
+async function mailen(){
+  const btn=document.getElementById("mail");
+  if(typeof ExcelJS==="undefined"){toast("Excel-module kon niet laden. Open de pagina met internet.",false);return;}
+  btn.disabled=true;btn.textContent="Bezig…";
+  try{
+    const blob=await bouwBestand();
+    const naam=bestandsnaam(), subj=onderwerp();
+    const file=new File([blob],naam,{type:blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({files:[file],title:subj});
+        toonKlaar();
+      }catch(e){ if(e.name!=="AbortError") throw e; }
+    }else{
+      downloadBlob(blob,naam);
+      const body="Het uren-bestand ("+naam+") staat in je downloads; voeg het hier toe als bijlage.";
+      window.location.href=`mailto:${MAIL_TO}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+      toonKlaar();
+    }
+  }catch(err){console.error(err);toast("Er ging iets mis: "+err.message,false);}
+  finally{btn.disabled=false;btn.textContent="Mailen / delen";}
 }
 
 function init(){
